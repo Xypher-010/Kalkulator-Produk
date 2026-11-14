@@ -32,6 +32,14 @@ const unitPriceInput = document.getElementById("unitPrice");
 const noteInput = document.getElementById("saleNote");
 const salesStatus = document.getElementById("salesStatus");
 const salesTableBody = document.getElementById("data-table-body");
+const expenseForm = document.getElementById("expenseForm");
+const expenseDateInput = document.getElementById("expenseDate");
+const expenseDescriptionInput = document.getElementById("expenseDescription");
+const expenseCategoryInput = document.getElementById("expenseCategory");
+const expenseAmountInput = document.getElementById("expenseAmount");
+const expenseNoteInput = document.getElementById("expenseNote");
+const expenseStatus = document.getElementById("expenseStatus");
+const expensesTableBody = document.getElementById("expense-table-body");
 const productSuggestions = document.getElementById("productSuggestions");
 const categorySuggestions = document.getElementById("categorySuggestions");
 const filterStartInput = document.getElementById("filterStart");
@@ -40,6 +48,7 @@ const menuToggle = document.getElementById("menuToggle");
 const pageMenu = document.getElementById("pageMenu");
 
 let sales = [];
+let expenses = [];
 // Keep this catalog after a sale is deleted so product entry suggestions persist.
 let productCatalog = [];
 let storageAvailable = true;
@@ -52,6 +61,11 @@ function createLocalDateValue(date = new Date()) {
 function setStatus(message, isError = false) {
   salesStatus.textContent = message;
   salesStatus.classList.toggle("is-error", isError);
+}
+
+function setExpenseStatus(message, isError = false) {
+  expenseStatus.textContent = message;
+  expenseStatus.classList.toggle("is-error", isError);
 }
 
 function isValidSale(record) {
@@ -83,11 +97,27 @@ function isValidProduct(product) {
   );
 }
 
-// Keep sales and remembered products together so one save updates the whole store.
+function isValidExpense(record) {
+  return (
+    record !== null &&
+    typeof record === "object" &&
+    typeof record.id === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
+    Number.isFinite(Date.parse(`${record.date}T00:00:00`)) &&
+    typeof record.description === "string" &&
+    typeof record.category === "string" &&
+    typeof record.note === "string" &&
+    Number.isFinite(record.amount) &&
+    record.amount >= 0 &&
+    typeof record.createdAt === "string"
+  );
+}
+
+// Keep all financial records together so each save updates the whole store.
 function readSavedData() {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === null) {
-    return { sales: [], products: [] };
+    return { sales: [], products: [], expenses: [] };
   }
 
   const parsed = JSON.parse(stored);
@@ -97,31 +127,39 @@ function readSavedData() {
     !Array.isArray(parsed.sales) ||
     !Array.isArray(parsed.products) ||
     !parsed.sales.every(isValidSale) ||
-    !parsed.products.every(isValidProduct)
+    !parsed.products.every(isValidProduct) ||
+    (parsed.expenses !== undefined &&
+      (!Array.isArray(parsed.expenses) || !parsed.expenses.every(isValidExpense)))
   ) {
-    throw new Error("Format data penjualan tersimpan tidak valid.");
+    throw new Error("Format data keuangan tersimpan tidak valid.");
   }
-  return parsed;
+  return { ...parsed, expenses: parsed.expenses || [] };
 }
 
-function saveData(successMessage) {
+function saveData(successMessage, statusTarget = salesStatus) {
   if (!storageAvailable) {
-    setStatus(
-      "Perubahan hanya tersedia selama halaman ini terbuka karena penyimpanan browser tidak dapat digunakan.",
-      true,
-    );
+    const message =
+      "Perubahan hanya tersedia selama halaman ini terbuka karena penyimpanan browser tidak dapat digunakan.";
+    statusTarget === expenseStatus
+      ? setExpenseStatus(message, true)
+      : setStatus(message, true);
     return;
   }
 
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ sales, products: productCatalog }),
+      JSON.stringify({ sales, products: productCatalog, expenses }),
     );
-    setStatus(successMessage);
+    statusTarget === expenseStatus
+      ? setExpenseStatus(successMessage)
+      : setStatus(successMessage);
   } catch (error) {
     storageAvailable = false;
-    setStatus(`Data berubah, tetapi gagal disimpan: ${error.message}`, true);
+    const message = `Data berubah, tetapi gagal disimpan: ${error.message}`;
+    statusTarget === expenseStatus
+      ? setExpenseStatus(message, true)
+      : setStatus(message, true);
   }
 }
 
@@ -220,8 +258,21 @@ function getFilteredSales() {
   if (start && end && start > end) {
     throw new Error("Tanggal awal harus sama atau sebelum tanggal akhir.");
   }
-  return sales.filter(
-    (sale) => (!start || sale.date >= start) && (!end || sale.date <= end),
+  return getFilteredRecords(sales, start, end);
+}
+
+function getFilteredExpenses() {
+  const start = filterStartInput.value;
+  const end = filterEndInput.value;
+  if (start && end && start > end) {
+    throw new Error("Tanggal awal harus sama atau sebelum tanggal akhir.");
+  }
+  return getFilteredRecords(expenses, start, end);
+}
+
+function getFilteredRecords(records, start, end) {
+  return records.filter(
+    (record) => (!start || record.date >= start) && (!end || record.date <= end),
   );
 }
 
@@ -269,6 +320,47 @@ function renderSalesTable(records) {
       actionCell.append(editButton, deleteButton);
       row.appendChild(actionCell);
       salesTableBody.appendChild(row);
+    });
+}
+
+function renderExpensesTable(records) {
+  expensesTableBody.replaceChildren();
+  document.getElementById("expenseTableCount").textContent =
+    `${quantityFormat.format(records.length)} catatan`;
+  document.getElementById("emptyExpenses").hidden = records.length > 0;
+
+  records
+    .slice()
+    .sort(
+      (left, right) =>
+        right.date.localeCompare(left.date) ||
+        right.createdAt.localeCompare(left.createdAt),
+    )
+    .forEach((expense) => {
+      const row = document.createElement("tr");
+      [
+        formatDate(expense.date),
+        expense.description,
+        expense.category || "—",
+        formatCurrency(expense.amount),
+        expense.note || "—",
+      ].forEach((value) => row.appendChild(createElement("td", "", value)));
+
+      const actionCell = document.createElement("td");
+      actionCell.className = "sales-actions";
+      const editButton = createElement("button", "sales-action-button", "Edit");
+      editButton.type = "button";
+      editButton.dataset.action = "edit-expense";
+      editButton.dataset.expenseId = expense.id;
+      editButton.setAttribute("aria-label", `Edit pengeluaran ${expense.description}`);
+      const deleteButton = createElement("button", "sales-action-button", "Hapus");
+      deleteButton.type = "button";
+      deleteButton.dataset.action = "delete-expense";
+      deleteButton.dataset.expenseId = expense.id;
+      deleteButton.setAttribute("aria-label", `Hapus pengeluaran ${expense.description}`);
+      actionCell.append(editButton, deleteButton);
+      row.appendChild(actionCell);
+      expensesTableBody.appendChild(row);
     });
 }
 
@@ -544,8 +636,10 @@ function renderPieChart(records) {
 
 function renderDashboard() {
   let filteredSales;
+  let filteredExpenses;
   try {
     filteredSales = getFilteredSales();
+    filteredExpenses = getFilteredExpenses();
   } catch (error) {
     setStatus(error.message, true);
     return;
@@ -555,12 +649,20 @@ function renderDashboard() {
     (total, sale) => total + sale.quantity * sale.unitPrice,
     0,
   );
+  const totalExpenses = filteredExpenses.reduce(
+    (total, expense) => total + expense.amount,
+    0,
+  );
   const unitsSold = filteredSales.reduce((total, sale) => total + sale.quantity, 0);
   document.getElementById("totalRevenue").textContent = formatCurrency(totalRevenue);
+  document.getElementById("totalExpenses").textContent = formatCurrency(totalExpenses);
+  document.getElementById("netBalance").textContent =
+    formatCurrency(totalRevenue - totalExpenses);
   document.getElementById("transactionCount").textContent =
-    quantityFormat.format(filteredSales.length);
+    quantityFormat.format(filteredSales.length + filteredExpenses.length);
   document.getElementById("unitsSold").textContent = quantityFormat.format(unitsSold);
   renderSalesTable(filteredSales);
+  renderExpensesTable(filteredExpenses);
   renderLineChart(filteredSales);
   renderPieChart(filteredSales);
 }
@@ -586,8 +688,28 @@ function startEditingSale(sale) {
   salesForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function createSaleId() {
+function createRecordId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function resetExpenseForm() {
+  expenseForm.reset();
+  delete expenseForm.dataset.editId;
+  expenseDateInput.value = createLocalDateValue();
+  document.getElementById("expenseSubmitLabel").textContent = "Simpan pengeluaran";
+  document.getElementById("cancelExpenseEditButton").hidden = true;
+}
+
+function startEditingExpense(expense) {
+  expenseDateInput.value = expense.date;
+  expenseDescriptionInput.value = expense.description;
+  expenseCategoryInput.value = expense.category;
+  expenseAmountInput.value = String(expense.amount);
+  expenseNoteInput.value = expense.note;
+  expenseForm.dataset.editId = expense.id;
+  document.getElementById("expenseSubmitLabel").textContent = "Simpan perubahan";
+  document.getElementById("cancelExpenseEditButton").hidden = false;
+  expenseForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // Product and category inputs are intentionally free text; saved values only act as suggestions.
@@ -617,7 +739,7 @@ salesForm.addEventListener("submit", (event) => {
   const editId = salesForm.dataset.editId;
   const existing = editId ? sales.find((sale) => sale.id === editId) : null;
   const sale = {
-    id: existing ? existing.id : createSaleId(),
+    id: existing ? existing.id : createRecordId(),
     date,
     product,
     category,
@@ -635,6 +757,49 @@ salesForm.addEventListener("submit", (event) => {
   resetSaleForm();
   renderDashboard();
   saveData(existing ? "Perubahan penjualan berhasil disimpan." : "Penjualan berhasil disimpan.");
+});
+
+expenseForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  setExpenseStatus("");
+
+  const date = expenseDateInput.value;
+  const description = expenseDescriptionInput.value.trim();
+  const amount = Number(expenseAmountInput.value);
+  if (
+    !date ||
+    !Number.isFinite(Date.parse(`${date}T00:00:00`)) ||
+    !description ||
+    expenseAmountInput.value.trim() === "" ||
+    !Number.isFinite(amount) ||
+    amount < 0
+  ) {
+    setExpenseStatus("Isi tanggal, nama, dan jumlah pengeluaran dengan nilai yang valid.", true);
+    return;
+  }
+
+  const editId = expenseForm.dataset.editId;
+  const existing = editId ? expenses.find((expense) => expense.id === editId) : null;
+  const expense = {
+    id: existing ? existing.id : createRecordId(),
+    date,
+    description,
+    category: expenseCategoryInput.value.trim(),
+    amount,
+    note: expenseNoteInput.value.trim(),
+    createdAt: existing ? existing.createdAt : new Date().toISOString(),
+  };
+  if (existing) {
+    expenses = expenses.map((item) => (item.id === editId ? expense : item));
+  } else {
+    expenses = [expense, ...expenses];
+  }
+  resetExpenseForm();
+  renderDashboard();
+  saveData(
+    existing ? "Perubahan pengeluaran berhasil disimpan." : "Pengeluaran berhasil disimpan.",
+    expenseStatus,
+  );
 });
 
 productNameInput.addEventListener("input", fillRememberedProduct);
@@ -655,6 +820,11 @@ document.getElementById("clearFiltersButton").addEventListener("click", () => {
   });
 });
 
+document.getElementById("cancelExpenseEditButton").addEventListener("click", () => {
+  resetExpenseForm();
+  setExpenseStatus("Edit dibatalkan.");
+});
+
 salesTableBody.addEventListener("click", (event) => {
   const button = event.target.closest("[data-action]");
   if (!button) {
@@ -672,6 +842,26 @@ salesTableBody.addEventListener("click", (event) => {
     sales = sales.filter((item) => item.id !== sale.id);
     renderDashboard();
     saveData("Penjualan dihapus. Produk tetap tersimpan sebagai saran.");
+  }
+});
+
+expensesTableBody.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  if (!button) {
+    return;
+  }
+  const expense = expenses.find((item) => item.id === button.dataset.expenseId);
+  if (!expense) {
+    return;
+  }
+  if (button.dataset.action === "edit-expense") {
+    startEditingExpense(expense);
+    return;
+  }
+  if (button.dataset.action === "delete-expense") {
+    expenses = expenses.filter((item) => item.id !== expense.id);
+    renderDashboard();
+    saveData("Pengeluaran dihapus.", expenseStatus);
   }
 });
 
@@ -708,11 +898,13 @@ try {
   const savedData = readSavedData();
   sales = savedData.sales;
   productCatalog = savedData.products;
+  expenses = savedData.expenses;
 } catch (error) {
   storageAvailable = false;
   setStatus(`Data tersimpan tidak dapat dibaca: ${error.message}`, true);
 }
 
 saleDateInput.value = createLocalDateValue();
+expenseDateInput.value = createLocalDateValue();
 renderSuggestions();
 renderDashboard();
