@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Catat penjualan dan lihat perkembangan toko melalui tabel serta grafik."
+    />
+    <meta name="theme-color" content="#10131d" />
+    <title>Data Keuangan | Kalkulator Produk</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell finance-shell">
+      <header class="page-header">
+        <div class="page-menu-row">
+          <div class="page-menu">
+            <button
+              id="menuToggle"
+              class="menu-toggle"
+              type="button"
+              aria-label="Buka menu navigasi"
+              aria-expanded="false"
+              aria-controls="pageMenu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <nav
+              id="pageMenu"
+              class="page-menu-links"
+              aria-label="Navigasi halaman"
+              hidden
+            >
+              <a href="afirstview.html">Beranda</a>
+              <a href="index.html">Kalkulator Potong Bahan</a>
+              <a href="moneydata.html" aria-current="page">Data Keuangan</a>
+            </nav>
+          </div>
+        </div>
+        <p class="eyebrow">DATA PENJUALAN</p>
+        <h1>Perkembangan toko.</h1>
+        <p class="intro">
+          Catat penjualan, pantau pendapatan dari waktu ke waktu, dan lihat
+          kategori produk yang paling banyak menghasilkan.
+        </p>
+      </header>
+
+      <section class="panel sales-input-panel" aria-labelledby="sale-form-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 / CATAT PENJUALAN</p>
+            <h2 id="sale-form-title">Tambah produk terjual</h2>
+          </div>
+          <span class="unit-note">Data disimpan di browser ini</span>
+        </div>
+
+        <!-- Add or remove fields here; mirror saved fields in moneydata.js. -->
+        <form id="salesForm">
+          <div class="sales-form-grid">
+            <label class="field">
+              <span>Tanggal penjualan</span>
+              <span class="input-wrap">
+                <input id="saleDate" name="date" type="date" required />
+              </span>
+            </label>
+            <label class="field">
+              <span>Nama produk</span>
+              <span class="input-wrap">
+                <input
+                  id="productName"
+                  name="product"
+                  type="text"
+                  list="productSuggestions"
+                  placeholder="Ketik nama produk"
+                  autocomplete="off"
+                  required
+                />
+              </span>
+            </label>
+            <label class="field">
+              <span>Kategori <span class="optional-note">(opsional)</span></span>
+              <span class="input-wrap">
+                <input
+                  id="productCategory"
+                  name="category"
+                  type="text"
+                  list="categorySuggestions"
+                  placeholder="Contoh: Minuman"
+                  autocomplete="off"
+                />
+              </span>
+            </label>
+            <label class="field">
+              <span>Jumlah terjual</span>
+              <span class="input-wrap">
+                <input
+                  id="quantity"
+                  name="quantity"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 2"
+                  required
+                />
+                <span>unit</span>
+              </span>
+            </label>
+            <label class="field">
+              <span>Harga per unit</span>
+              <span class="input-wrap">
+                <span>Rp</span>
+                <input
+                  id="unitPrice"
+                  name="unitPrice"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 25000"
+                  required
+                />
+              </span>
+            </label>
+            <label class="field">
+              <span>Catatan <span class="optional-note">(opsional)</span></span>
+              <span class="input-wrap">
+                <input
+                  id="saleNote"
+                  name="note"
+                  type="text"
+                  placeholder="Contoh: pesanan pelanggan"
+                />
+              </span>
+            </label>
+          </div>
+
+          <!-- Datalists suggest saved entries but still allow any typed value. -->
+          <datalist id="productSuggestions"></datalist>
+          <datalist id="categorySuggestions"></datalist>
+
+          <div class="sales-form-actions">
+            <button class="primary-button" type="submit">
+              <span id="submitLabel">Simpan penjualan</span>
+              <span aria-hidden="true">→</span>
+            </button>
+            <button id="cancelEditButton" class="secondary-button" type="button" hidden>
+              Batal edit
+            </button>
+          </div>
+          <p id="salesStatus" class="status-message" role="status" aria-live="polite"></p>
+          <p class="field-hint">
+            Produk dan kategori bisa diketik bebas. Produk yang disimpan akan
+            muncul sebagai saran untuk pencatatan berikutnya.
+          </p>
+        </form>
+      </section>
+
+      <section class="sales-kpi-grid" aria-label="Ringkasan penjualan">
+        <article class="metric-card metric-primary">
+          <span class="metric-label">Total pendapatan</span>
+          <strong id="totalRevenue" class="metric-value">Rp 0</strong>
+          <span class="metric-detail">sesuai rentang tanggal</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Transaksi</span>
+          <strong id="transactionCount" class="metric-value">0</strong>
+          <span class="metric-detail">catatan penjualan</span>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Unit terjual</span>
+          <strong id="unitsSold" class="metric-value">0</strong>
+          <span class="metric-detail">jumlah produk</span>
+        </article>
+      </section>
+
+      <section class="panel filter-panel" aria-labelledby="filter-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">02 / RENTANG WAKTU</p>
+            <h2 id="filter-title">Filter laporan</h2>
+          </div>
+          <button id="clearFiltersButton" class="secondary-button" type="button">
+            Hapus filter
+          </button>
+        </div>
+        <!-- These dates filter the summary, table, and both charts together. -->
+        <div class="filter-grid">
+          <label class="field">
+            <span>Dari tanggal</span>
+            <span class="input-wrap">
+              <input id="filterStart" type="date" />
+            </span>
+          </label>
+          <label class="field">
+            <span>Sampai tanggal</span>
+            <span class="input-wrap">
+              <input id="filterEnd" type="date" />
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="sales-charts" aria-label="Grafik penjualan">
+        <article class="panel sales-chart-panel" aria-labelledby="line-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">03 / TREN PENJUALAN</p>
+              <h2 id="line-title">Pendapatan per tanggal</h2>
+            </div>
+          </div>
+          <!-- moneydata.js draws the date-based SVG line chart into this area. -->
+          <div id="lineChart" class="chart-container"></div>
+        </article>
+        <article class="panel sales-chart-panel" aria-labelledby="pie-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">04 / KATEGORI PRODUK</p>
+              <h2 id="pie-title">Pendapatan per kategori</h2>
+            </div>
+          </div>
+          <!-- Categories and their shares are rendered here from saved sales. -->
+          <div class="pie-chart-layout">
+            <div id="pieChart" class="pie-chart"></div>
+            <div id="pieLegend" class="chart-legend"></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="panel sales-table-panel" aria-labelledby="table-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">05 / RIWAYAT PENJUALAN</p>
+            <h2 id="table-title">Data penjualan</h2>
+          </div>
+          <span id="tableCount" class="unit-note">0 catatan</span>
+        </div>
+        <div class="sales-table-wrap">
+          <table id="salesTable" class="sales-table">
+            <thead>
+              <tr>
+                <th scope="col">Tanggal</th>
+                <th scope="col">Produk</th>
+                <th scope="col">Kategori</th>
+                <th scope="col">Jumlah</th>
+                <th scope="col">Harga/unit</th>
+                <th scope="col">Pendapatan</th>
+                <th scope="col">Catatan</th>
+                <th scope="col">Aksi</th>
+              </tr>
+            </thead>
+            <!-- Sales rows are created in moneydata.js; user text is never parsed as HTML. -->
+            <tbody id="data-table-body"></tbody>
+          </table>
+        </div>
+        <p id="emptySales" class="empty-state" hidden>
+          Belum ada penjualan pada rentang tanggal ini.
+        </p>
+      </section>
+    </main>
+    <script src="moneydata.js"></script>
+  </body>
+</html>

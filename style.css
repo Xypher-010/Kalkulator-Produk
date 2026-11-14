@@ -777,6 +777,230 @@ h2 {
   text-align: center;
 }
 
+/* Layout for the sales ledger, date filters, and charts on moneydata.html. */
+.finance-shell {
+  max-width: 1180px;
+}
+
+.sales-form-grid,
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.optional-note {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.sales-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sales-form-actions .primary-button {
+  margin-top: 20px;
+}
+
+.sales-form-actions .secondary-button {
+  margin-top: 20px;
+}
+
+.sales-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.sales-kpi-grid .metric-card {
+  min-height: 132px;
+}
+
+.sales-kpi-grid .metric-value {
+  overflow-wrap: anywhere;
+}
+
+.filter-panel {
+  margin-top: 20px;
+}
+
+.filter-panel .section-heading {
+  align-items: center;
+}
+
+.filter-grid {
+  max-width: 700px;
+}
+
+.sales-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.sales-chart-panel {
+  min-width: 0;
+  margin-top: 0;
+  padding: 22px;
+}
+
+.sales-chart-panel .section-heading {
+  margin-bottom: 12px;
+}
+
+.chart-container {
+  display: flex;
+  min-height: 300px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.chart-container svg {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.chart-container svg text,
+.pie-chart svg text {
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.chart-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.pie-chart-layout {
+  display: grid;
+  min-height: 300px;
+  grid-template-columns: minmax(160px, 1fr) minmax(145px, 1.2fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.pie-chart {
+  display: grid;
+  min-width: 0;
+  min-height: 250px;
+  place-items: center;
+}
+
+.pie-chart svg {
+  display: block;
+  width: min(100%, 300px);
+}
+
+.chart-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.chart-legend-item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.chart-swatch {
+  width: 11px;
+  height: 11px;
+  margin-top: 3px;
+  border-radius: 3px;
+}
+
+.chart-legend-name {
+  overflow-wrap: anywhere;
+}
+
+.chart-legend-amount {
+  grid-column: 2;
+  color: #f3f5f8;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.sales-table-panel {
+  margin-top: 20px;
+}
+
+.sales-table-wrap {
+  overflow-x: auto;
+}
+
+.sales-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+.sales-table th,
+.sales-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.sales-table th {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sales-table td {
+  color: #e4e8ef;
+}
+
+.sales-table tbody tr:hover {
+  background: rgb(255 255 255 / 2%);
+}
+
+.sales-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.sales-action-button {
+  padding: 6px 8px;
+  border: 1px solid #424b5e;
+  border-radius: 7px;
+  background: transparent;
+  color: #cad0dc;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.sales-action-button:hover {
+  border-color: var(--lime);
+  color: var(--lime);
+}
+
+.sales-action-button[data-action="delete"]:hover {
+  border-color: #ff9a9a;
+  color: #ff9a9a;
+}
+
+.sales-action-button:focus-visible,
+.secondary-button:focus-visible {
+  outline: 3px solid var(--lime);
+  outline-offset: 3px;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -792,6 +1016,10 @@ h2 {
   }
 
   .diagram-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-charts {
     grid-template-columns: 1fr;
   }
 }
@@ -812,8 +1040,22 @@ h2 {
   }
 
   .input-grid,
-  .value-grid {
+  .value-grid,
+  .sales-form-grid,
+  .filter-grid {
     grid-template-columns: 1fr;
+  }
+
+  .sales-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pie-chart-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chart-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .field-price {
