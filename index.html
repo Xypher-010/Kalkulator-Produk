@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Hitung jumlah potongan, visualisasi sisa bahan, dan perkiraan nilai material."
+    />
+    <title>Kalkulator Potong Bahan</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <div class="page-menu-row">
+          <div class="page-menu">
+            <button
+              id="menuToggle"
+              class="menu-toggle"
+              type="button"
+              aria-label="Buka menu navigasi"
+              aria-expanded="false"
+              aria-controls="pageMenu"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <nav id="pageMenu" class="page-menu-links" aria-label="Navigasi halaman" hidden>
+              <a href="afirstview.html">Beranda</a>
+              <a href="index.html" aria-current="page">Kalkulator Potong Bahan</a>
+            </nav>
+          </div>
+        </div>
+        <p class="eyebrow">KALKULATOR MATERIAL</p>
+        <h1>Hitung bahan dengan lebih jelas.</h1>
+        <p class="intro">
+          Masukkan ukuran lembar dan potongan untuk melihat hasil, sisa bahan,
+          serta perkiraan nilai materialnya.
+        </p>
+      </header>
+
+      <section class="panel input-panel" aria-labelledby="input-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 / DATA BAHAN</p>
+            <h2 id="input-title">Ukuran &amp; harga</h2>
+          </div>
+          <span class="unit-note">Semua ukuran dalam cm</span>
+        </div>
+
+        <form id="calculatorForm">
+          <div class="input-grid">
+            <label class="field">
+              <span>Panjang bahan</span>
+              <span class="input-wrap">
+                <input id="panjangBahan" name="panjangBahan" type="number" min="0" step="any" placeholder="Contoh: 240" required />
+                <span>cm</span>
+              </span>
+            </label>
+            <label class="field">
+              <span>Lebar bahan</span>
+              <span class="input-wrap">
+                <input id="lebarBahan" name="lebarBahan" type="number" min="0" step="any" placeholder="Contoh: 120" required />
+                <span>cm</span>
+              </span>
+            </label>
+            <label class="field">
+              <span>Panjang potongan</span>
+              <span class="input-wrap">
+                <input id="panjangPotong" name="panjangPotong" type="number" min="0" step="any" placeholder="Contoh: 60" required />
+                <span>cm</span>
+              </span>
+            </label>
+            <label class="field">
+              <span>Lebar potongan</span>
+              <span class="input-wrap">
+                <input id="lebarPotong" name="lebarPotong" type="number" min="0" step="any" placeholder="Contoh: 40" required />
+                <span>cm</span>
+              </span>
+            </label>
+            <label class="field field-price">
+              <span>Harga bahan per m²</span>
+              <span class="input-wrap">
+                <span>Rp</span>
+                <input id="hargaPerMeter" name="hargaPerMeter" type="number" min="0" step="any" placeholder="Contoh: 150000" required />
+              </span>
+              <span class="field-hint">Nilai dihitung dari luas (ukuran cm dikonversi ke m²).</span>
+            </label>
+          </div>
+          <button class="primary-button" type="submit">
+            <span>Hitung bahan</span>
+            <span aria-hidden="true">→</span>
+          </button>
+          <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section id="resultsSection" class="results-section" aria-labelledby="results-title" hidden>
+        <div class="section-heading results-heading">
+          <div>
+            <p class="eyebrow">02 / HASIL KALKULASI</p>
+            <h2 id="results-title">Ringkasan bahan</h2>
+          </div>
+          <span id="saveBadge" class="saved-badge">Menunggu penyimpanan</span>
+        </div>
+
+        <div class="metric-grid">
+          <article class="metric-card metric-primary">
+            <span class="metric-label">Jumlah potongan</span>
+            <strong id="pieceCount" class="metric-value">—</strong>
+            <span class="metric-detail">potongan utuh</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Luas bahan awal</span>
+            <strong id="sheetArea" class="metric-value">—</strong>
+            <span id="sheetAreaDetail" class="metric-detail">—</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Luas terpakai</span>
+            <strong id="usedArea" class="metric-value">—</strong>
+            <span id="usedAreaDetail" class="metric-detail">—</span>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Luas sisa</span>
+            <strong id="leftoverArea" class="metric-value">—</strong>
+            <span id="leftoverAreaDetail" class="metric-detail">—</span>
+          </article>
+        </div>
+
+        <section class="panel value-panel" aria-labelledby="value-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">03 / NILAI MATERIAL</p>
+              <h2 id="value-title">Perkiraan nilai tiap area</h2>
+            </div>
+            <span id="priceBasis" class="unit-note">Harga per m²</span>
+          </div>
+          <div class="value-grid">
+            <div class="value-item">
+              <span>Nilai seluruh bahan</span>
+              <strong id="sheetValue">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Nilai area terpakai</span>
+              <strong id="usedValue">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Nilai area sisa</span>
+              <strong id="leftoverValue">—</strong>
+            </div>
+            <div class="value-item value-highlight">
+              <span>Nilai per potongan</span>
+              <strong id="pieceValue">—</strong>
+            </div>
+          </div>
+          <p class="calculation-note">
+            Perkiraan nilai berdasarkan luas saja, belum termasuk biaya potong
+            atau faktor lain.
+          </p>
+        </section>
+
+        <section class="panel visual-panel" aria-labelledby="visual-title">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">04 / VISUALISASI</p>
+              <h2 id="visual-title">Sebelum &amp; sesudah dipotong</h2>
+            </div>
+          </div>
+          <div class="diagram-grid">
+            <article class="diagram-card">
+              <h3>Sebelum dipotong</h3>
+              <p id="beforeDimensions" class="diagram-subtitle"></p>
+              <div id="beforeDiagram" class="diagram"></div>
+            </article>
+            <article class="diagram-card">
+              <h3>Susunan setelah dipotong</h3>
+              <p id="afterDimensions" class="diagram-subtitle"></p>
+              <div id="afterDiagram" class="diagram"></div>
+            </article>
+          </div>
+          <div class="visual-key" aria-label="Keterangan visual">
+            <span><i class="key-swatch key-cut"></i>Area potongan utuh</span>
+            <span><i class="key-swatch key-leftover"></i>Sisa bahan</span>
+            <span><i class="key-swatch key-sheet"></i>Ukuran bahan awal</span>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel history-panel" aria-labelledby="history-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">05 / DATA TERSIMPAN</p>
+            <h2 id="history-title">Riwayat kalkulasi</h2>
+          </div>
+          <span id="historyCount" class="unit-note">0 kalkulasi</span>
+        </div>
+        <p class="history-note">
+          Riwayat disimpan di browser ini dan tetap tersedia saat halaman dibuka kembali.
+        </p>
+        <div id="historyList" class="history-list"></div>
+        <p id="emptyHistory" class="empty-state">Belum ada kalkulasi tersimpan.</p>
+      </section>
+    </main>
+    <script src="main.js"></script>
+  </body>
+</html>
