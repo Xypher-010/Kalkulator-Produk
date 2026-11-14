@@ -12,6 +12,16 @@ const compactFormat = new Intl.NumberFormat("id-ID", {
   notation: "compact",
   maximumFractionDigits: 1,
 });
+// Customize these category-series colors; the total-sales line uses the lime accent.
+const CATEGORY_CHART_COLORS = [
+  "#83c6ff",
+  "#d9a6ff",
+  "#f7b867",
+  "#ff9f80",
+  "#73d6a1",
+  "#8bd3c7",
+];
+const TOTAL_CHART_COLOR = "#c5f36b";
 
 const salesForm = document.getElementById("salesForm");
 const saleDateInput = document.getElementById("saleDate");
@@ -264,38 +274,71 @@ function renderSalesTable(records) {
 
 function renderLineChart(records) {
   const container = document.getElementById("lineChart");
+  const legend = document.getElementById("lineLegend");
   container.replaceChildren();
-  // The trend is daily gross sales: quantity multiplied by unit price.
+  legend.replaceChildren();
+  // Keep daily totals and per-category amounts so every line uses the same dates.
   const dailyRevenue = new Map();
+  const dailyCategoryRevenue = new Map();
+  const categoryTotals = new Map();
   records.forEach((sale) => {
+    const category = sale.category.trim() || "Tanpa kategori";
+    const revenue = sale.quantity * sale.unitPrice;
     dailyRevenue.set(
       sale.date,
-      (dailyRevenue.get(sale.date) || 0) + sale.quantity * sale.unitPrice,
+      (dailyRevenue.get(sale.date) || 0) + revenue,
     );
+    if (!dailyCategoryRevenue.has(sale.date)) {
+      dailyCategoryRevenue.set(sale.date, new Map());
+    }
+    const dailyCategories = dailyCategoryRevenue.get(sale.date);
+    dailyCategories.set(category, (dailyCategories.get(category) || 0) + revenue);
+    categoryTotals.set(category, (categoryTotals.get(category) || 0) + revenue);
   });
-  const points = [...dailyRevenue.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([date, revenue]) => ({ date, revenue }));
+  const dates = [...dailyRevenue.keys()].sort((left, right) =>
+    left.localeCompare(right),
+  );
 
-  if (points.length === 0) {
+  if (dates.length === 0) {
     container.appendChild(
       createElement("p", "chart-empty", "Belum ada penjualan pada rentang tanggal ini."),
     );
     return;
   }
 
+  const categories = [...categoryTotals.keys()].sort(
+    (left, right) => categoryTotals.get(right) - categoryTotals.get(left),
+  );
+  const categorySeries = categories.map((name, index) => ({
+    name,
+    color: CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length],
+    values: dates.map(
+      (date) => dailyCategoryRevenue.get(date).get(name) || 0,
+    ),
+    type: "category",
+  }));
+  const totalSeries = {
+    name: "Total penjualan",
+    color: TOTAL_CHART_COLOR,
+    values: dates.map((date) => dailyRevenue.get(date)),
+    type: "total",
+  };
+
   const width = 900;
   const height = 320;
   const margins = { top: 24, right: 24, bottom: 58, left: 90 };
   const plotWidth = width - margins.left - margins.right;
   const plotHeight = height - margins.top - margins.bottom;
-  const maxRevenue = Math.max(1, ...points.map((point) => point.revenue));
-  const firstDay = Date.parse(`${points[0].date}T00:00:00Z`);
-  const lastDay = Date.parse(`${points[points.length - 1].date}T00:00:00Z`);
+  const maxRevenue = Math.max(1, ...dailyRevenue.values());
+  const firstDay = Date.parse(`${dates[0]}T00:00:00Z`);
+  const lastDay = Date.parse(`${dates[dates.length - 1]}T00:00:00Z`);
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", "Grafik garis pendapatan penjualan berdasarkan tanggal");
+  svg.setAttribute(
+    "aria-label",
+    "Grafik garis total penjualan dan pendapatan per kategori berdasarkan tanggal",
+  );
 
   // Grid labels make the chart readable without an external charting library.
   for (let tick = 0; tick <= 4; tick += 1) {
@@ -323,57 +366,78 @@ function renderLineChart(records) {
     );
   }
 
-  const chartPoints = points.map((point) => ({
-    ...point,
-    x:
-      firstDay === lastDay
-        ? margins.left + plotWidth / 2
-        : margins.left +
-          (plotWidth *
-            (Date.parse(`${point.date}T00:00:00Z`) - firstDay)) /
-            (lastDay - firstDay),
-    y: margins.top + plotHeight * (1 - point.revenue / maxRevenue),
+  const xForDate = (date) =>
+    firstDay === lastDay
+      ? margins.left + plotWidth / 2
+      : margins.left +
+        (plotWidth * (Date.parse(`${date}T00:00:00Z`) - firstDay)) /
+          (lastDay - firstDay);
+  const chartSeries = [...categorySeries, totalSeries].map((series) => ({
+    ...series,
+    points: series.values.map((revenue, index) => ({
+      date: dates[index],
+      revenue,
+      x: xForDate(dates[index]),
+      y: margins.top + plotHeight * (1 - revenue / maxRevenue),
+    })),
   }));
-  createSvgElement(svg, "polyline", {
-    points: chartPoints.map((point) => `${point.x},${point.y}`).join(" "),
-    fill: "none",
-    stroke: "#c5f36b",
-    "stroke-width": 3,
-    "stroke-linecap": "round",
-    "stroke-linejoin": "round",
-  });
-  chartPoints.forEach((point) => {
-    createSvgElement(svg, "circle", {
-      cx: point.x,
-      cy: point.y,
-      r: 4,
-      fill: "#c5f36b",
-      stroke: "#10131d",
-      "stroke-width": 2,
+
+  // Category lines are drawn first so the brighter total line stays easy to see.
+  chartSeries.forEach((series) => {
+    createSvgElement(svg, "polyline", {
+      points: series.points.map((point) => `${point.x},${point.y}`).join(" "),
+      fill: "none",
+      stroke: series.color,
+      "stroke-width": series.type === "total" ? 4 : 2.5,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "data-series": series.type,
+      "aria-label": series.name,
+    });
+    series.points.forEach((point) => {
+      createSvgElement(svg, "circle", {
+        cx: point.x,
+        cy: point.y,
+        r: series.type === "total" ? 4 : 3,
+        fill: series.color,
+        stroke: "#10131d",
+        "stroke-width": 2,
+      });
     });
   });
 
   const labelIndexes = new Set([
     0,
-    Math.floor((chartPoints.length - 1) / 2),
-    chartPoints.length - 1,
+    Math.floor((dates.length - 1) / 2),
+    dates.length - 1,
   ]);
   labelIndexes.forEach((index) => {
-    const point = chartPoints[index];
     createSvgElement(
       svg,
       "text",
       {
-        x: point.x,
+        x: xForDate(dates[index]),
         y: height - 23,
         "text-anchor": "middle",
         fill: "#9aa4b6",
         "font-size": 11,
       },
-      formatDate(point.date, { day: "numeric", month: "short" }),
+      formatDate(dates[index], { day: "numeric", month: "short" }),
     );
   });
   container.appendChild(svg);
+
+  // The legend names the total and each category drawn above.
+  [totalSeries, ...categorySeries].forEach((series) => {
+    const item = createElement("div", "line-legend-item");
+    const swatch = createElement("span", "line-legend-swatch");
+    swatch.style.backgroundColor = series.color;
+    item.append(
+      swatch,
+      createElement("span", "", series.name),
+    );
+    legend.appendChild(item);
+  });
 }
 
 function renderPieChart(records) {
@@ -403,8 +467,6 @@ function renderPieChart(records) {
   }
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  // Edit this palette to customize category colors; it repeats after six categories.
-  const colors = ["#c5f36b", "#73d6a1", "#83c6ff", "#d9a6ff", "#f7b867", "#ff9f80"];
   const center = 150;
   const radius = 92;
   const circumference = 2 * Math.PI * radius;
@@ -429,7 +491,8 @@ function renderPieChart(records) {
       cy: center,
       r: radius,
       fill: "none",
-      stroke: colors[index % colors.length],
+      stroke:
+        CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length],
       "stroke-width": 34,
       "stroke-dasharray": `${dashLength} ${circumference - dashLength}`,
       "stroke-dashoffset": -dashOffset,
@@ -439,7 +502,8 @@ function renderPieChart(records) {
 
     const legendRow = createElement("div", "chart-legend-item");
     const swatch = createElement("span", "chart-swatch");
-    swatch.style.backgroundColor = colors[index % colors.length];
+    swatch.style.backgroundColor =
+      CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length];
     swatch.setAttribute("aria-hidden", "true");
     const name = createElement("span", "chart-legend-name", item.name);
     const amount = createElement(
@@ -573,7 +637,7 @@ salesForm.addEventListener("submit", (event) => {
   saveData(existing ? "Perubahan penjualan berhasil disimpan." : "Penjualan berhasil disimpan.");
 });
 
-productNameInput.addEventListener("change", fillRememberedProduct);
+productNameInput.addEventListener("input", fillRememberedProduct);
 document.getElementById("cancelEditButton").addEventListener("click", () => {
   resetSaleForm();
   setStatus("Edit dibatalkan.");
