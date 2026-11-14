@@ -28,7 +28,6 @@ const modeInputs = [...document.querySelectorAll('input[name="calculationMode"]'
 
 let historyRecords = [];
 let historyAvailable = true;
-let diagramNumber = 0;
 const MAX_SIZE_TYPES = 10;
 const MAX_MIXED_PIECES = 1000;
 
@@ -285,7 +284,6 @@ function createDiagram(container, calculation, showCuts) {
   const usedDrawnWidth = usedLength * scale;
   const usedDrawnHeight = usedWidth * scale;
 
-  diagramNumber += 1;
   setSvgAttributes(svg, {
     viewBox: "0 0 480 235",
     role: "img",
@@ -657,12 +655,12 @@ function calculate(values) {
 
 function findMixedPlacement(freeRectangles, item) {
   let best = null;
-  freeRectangles.forEach((free, freeIndex) => {
+  freeRectangles.forEach((free) => {
     const orientations = [
       { length: item.length, width: item.width },
       { length: item.width, width: item.length },
     ];
-    orientations.forEach((orientation, orientationIndex) => {
+    orientations.forEach((orientation) => {
       if (
         orientation.length > free.width + 1e-9 ||
         orientation.width > free.height + 1e-9
@@ -689,8 +687,6 @@ function findMixedPlacement(freeRectangles, item) {
           y: free.y,
           length: orientation.length,
           width: orientation.width,
-          freeIndex,
-          orientationIndex,
           score,
         };
       }
