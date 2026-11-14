@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Hitung jumlah potongan, visualisasi sisa bahan, dan perkiraan nilai material."
+      content="Hitung potongan ukuran tunggal atau campuran berdasarkan ukuran maupun berat bahan."
     />
     <title>Kalkulator Potong Bahan</title>
     <link rel="stylesheet" href="style.css" />
@@ -27,16 +27,23 @@
               <span></span>
               <span></span>
             </button>
-            <nav id="pageMenu" class="page-menu-links" aria-label="Navigasi halaman" hidden>
+            <nav
+              id="pageMenu"
+              class="page-menu-links"
+              aria-label="Navigasi halaman"
+              hidden
+            >
               <a href="afirstview.html">Beranda</a>
-              <a href="index.html" aria-current="page">Kalkulator Potong Bahan</a>
+              <a href="index.html" aria-current="page"
+                >Kalkulator Potong Bahan</a
+              >
             </nav>
           </div>
         </div>
         <p class="eyebrow">KALKULATOR MATERIAL</p>
         <h1>Hitung bahan dengan lebih jelas.</h1>
         <p class="intro">
-          Masukkan ukuran lembar dan potongan untuk melihat hasil, sisa bahan,
+          Masukkan data material dan potongan untuk melihat hasil, sisa bahan,
           serta perkiraan nilai materialnya.
         </p>
       </header>
@@ -47,57 +54,193 @@
             <p class="eyebrow">01 / DATA BAHAN</p>
             <h2 id="input-title">Ukuran &amp; harga</h2>
           </div>
-          <span class="unit-note">Semua ukuran dalam cm</span>
+          <span id="unitNote" class="unit-note">Semua ukuran dalam cm</span>
         </div>
 
         <form id="calculatorForm">
+          <fieldset class="mode-switch">
+            <legend>Mode kalkulasi</legend>
+            <label>
+              <input
+                type="radio"
+                name="calculationMode"
+                value="single"
+                checked
+              />
+              Ukuran tunggal
+            </label>
+            <label>
+              <input type="radio" name="calculationMode" value="multi" />
+              Ukuran campuran
+            </label>
+            <label>
+              <input type="radio" name="calculationMode" value="weight" />
+              Berat
+            </label>
+          </fieldset>
+
           <div class="input-grid">
-            <label class="field">
+            <label class="field dimensions-field">
               <span>Panjang bahan</span>
               <span class="input-wrap">
-                <input id="panjangBahan" name="panjangBahan" type="number" min="0" step="any" placeholder="Contoh: 240" required />
+                <input
+                  id="panjangBahan"
+                  name="panjangBahan"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 240"
+                  required
+                />
                 <span>cm</span>
               </span>
             </label>
-            <label class="field">
+            <label class="field dimensions-field">
               <span>Lebar bahan</span>
               <span class="input-wrap">
-                <input id="lebarBahan" name="lebarBahan" type="number" min="0" step="any" placeholder="Contoh: 120" required />
+                <input
+                  id="lebarBahan"
+                  name="lebarBahan"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 120"
+                  required
+                />
                 <span>cm</span>
               </span>
             </label>
-            <label class="field">
+            <label class="field single-size-field">
               <span>Panjang potongan</span>
               <span class="input-wrap">
-                <input id="panjangPotong" name="panjangPotong" type="number" min="0" step="any" placeholder="Contoh: 60" required />
+                <input
+                  id="panjangPotong"
+                  name="panjangPotong"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 60"
+                  required
+                />
                 <span>cm</span>
               </span>
             </label>
-            <label class="field">
+            <label class="field single-size-field">
               <span>Lebar potongan</span>
               <span class="input-wrap">
-                <input id="lebarPotong" name="lebarPotong" type="number" min="0" step="any" placeholder="Contoh: 40" required />
+                <input
+                  id="lebarPotong"
+                  name="lebarPotong"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 40"
+                  required
+                />
                 <span>cm</span>
               </span>
             </label>
-            <label class="field field-price">
+            <label class="field field-price size-price-field">
               <span>Harga bahan per m²</span>
               <span class="input-wrap">
                 <span>Rp</span>
-                <input id="hargaPerMeter" name="hargaPerMeter" type="number" min="0" step="any" placeholder="Contoh: 150000" required />
+                <input
+                  id="hargaPerMeter"
+                  name="hargaPerMeter"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 150000"
+                  required
+                />
               </span>
-              <span class="field-hint">Nilai dihitung dari luas (ukuran cm dikonversi ke m²).</span>
+              <span class="field-hint"
+                >Nilai dihitung dari luas (ukuran cm dikonversi ke m²).</span
+              >
+            </label>
+          </div>
+          <section
+            id="multiSizeFields"
+            class="mode-fields"
+            hidden
+            aria-labelledby="multi-size-title"
+          >
+            <div class="section-heading compact-heading">
+              <div>
+                <h3 id="multi-size-title">Ukuran potongan</h3>
+                <p class="field-hint">
+                  Masukkan semua ukuran yang ingin dibuat. Kalkulator mencoba
+                  memasukkan tiap ukuran setidaknya sekali, orientasi boleh
+                  diputar, lalu mengisi sisa bahan.
+                </p>
+              </div>
+            </div>
+            <div id="sizeRows" class="size-rows"></div>
+            <button id="addSizeButton" class="secondary-button" type="button">
+              + Tambah ukuran
+            </button>
+            <p class="field-hint">Maksimal 10 jenis ukuran.</p>
+          </section>
+          <div class="input-grid weight-fields" hidden>
+            <label class="field">
+              <span>Berat bahan tersedia</span>
+              <span class="input-wrap">
+                <input
+                  id="materialWeight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 20"
+                />
+                <span>kg</span>
+              </span>
+            </label>
+            <label class="field">
+              <span>Berat per potongan</span>
+              <span class="input-wrap">
+                <input
+                  id="pieceWeight"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 0,5"
+                />
+                <span>kg</span>
+              </span>
+            </label>
+            <label class="field field-price">
+              <span>Harga bahan per kg</span>
+              <span class="input-wrap">
+                <span>Rp</span>
+                <input
+                  id="pricePerKg"
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Contoh: 50000"
+                />
+              </span>
             </label>
           </div>
           <button class="primary-button" type="submit">
             <span>Hitung bahan</span>
             <span aria-hidden="true">→</span>
           </button>
-          <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+          <p
+            id="statusMessage"
+            class="status-message"
+            role="status"
+            aria-live="polite"
+          ></p>
         </form>
       </section>
 
-      <section id="resultsSection" class="results-section" aria-labelledby="results-title" hidden>
+      <section
+        id="resultsSection"
+        class="results-section"
+        aria-labelledby="results-title"
+        hidden
+      >
         <div class="section-heading results-heading">
           <div>
             <p class="eyebrow">02 / HASIL KALKULASI</p>
@@ -128,6 +271,55 @@
             <span id="leftoverAreaDetail" class="metric-detail">—</span>
           </article>
         </div>
+        <div id="multiSummary" class="multi-summary" hidden>
+          <h3>Hasil tiap ukuran</h3>
+          <div id="multiCounts" class="multi-counts"></div>
+          <p class="calculation-note">
+            Susunan campuran menggunakan pencarian heuristik dan memprioritaskan
+            tiap ukuran yang muat. Hasilnya adalah susunan terbaik yang
+            ditemukan, bukan jaminan optimum matematis.
+          </p>
+          <p id="multiLimitNote" class="calculation-note limit-note" hidden>
+            Batas 1.000 potongan tercapai; hasil mungkin belum mencakup semua
+            potongan yang bisa dipotong.
+          </p>
+        </div>
+        <section
+          id="weightResults"
+          class="panel weight-results"
+          hidden
+          aria-labelledby="weight-results-title"
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">HASIL BERDASARKAN BERAT</p>
+              <h2 id="weight-results-title">Ringkasan berat</h2>
+            </div>
+          </div>
+          <div class="value-grid">
+            <div class="value-item">
+              <span>Berat bahan tersedia</span
+              ><strong id="weightTotal">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Jumlah potongan</span><strong id="weightPieces">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Berat terpakai</span><strong id="weightUsed">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Sisa berat</span><strong id="weightLeftover">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Nilai seluruh bahan</span
+              ><strong id="weightSheetValue">—</strong>
+            </div>
+            <div class="value-item">
+              <span>Nilai berat terpakai</span
+              ><strong id="weightUsedValue">—</strong>
+            </div>
+          </div>
+        </section>
 
         <section class="panel value-panel" aria-labelledby="value-title">
           <div class="section-heading">
@@ -197,10 +389,13 @@
           <span id="historyCount" class="unit-note">0 kalkulasi</span>
         </div>
         <p class="history-note">
-          Riwayat disimpan di browser ini dan tetap tersedia saat halaman dibuka kembali.
+          Riwayat disimpan di browser ini dan tetap tersedia saat halaman dibuka
+          kembali.
         </p>
         <div id="historyList" class="history-list"></div>
-        <p id="emptyHistory" class="empty-state">Belum ada kalkulasi tersimpan.</p>
+        <p id="emptyHistory" class="empty-state">
+          Belum ada kalkulasi tersimpan.
+        </p>
       </section>
     </main>
     <script src="main.js"></script>
