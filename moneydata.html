@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Catat penjualan dan lihat perkembangan toko melalui tabel serta grafik."
+      content="Catat penjualan dan biaya, lalu pantau pendapatan serta laba usaha."
     />
     <meta name="theme-color" content="#10131d" />
     <title>Data Keuangan | Kalkulator Produk</title>
@@ -40,11 +40,11 @@
             </nav>
           </div>
         </div>
-        <p class="eyebrow">DATA PENJUALAN</p>
+        <p class="eyebrow">DATA KEUANGAN</p>
         <h1>Perkembangan toko.</h1>
         <p class="intro">
-          Catat penjualan, pantau pendapatan dari waktu ke waktu, dan lihat
-          kategori produk yang paling banyak menghasilkan.
+          Catat penjualan dan biaya, hitung laba bersih, dan pantau kategori
+          produk yang paling banyak menghasilkan.
         </p>
       </header>
 
@@ -57,7 +57,7 @@
           <span class="unit-note">Data disimpan di browser ini</span>
         </div>
 
-        <!-- Add or remove fields here; mirror saved fields in moneydata.js. -->
+        <!-- Add or remove fields here; keep the saved fields aligned with moneydata-core.js. -->
         <form id="salesForm">
           <div class="sales-form-grid">
             <label class="field">
@@ -124,6 +124,36 @@
               </span>
             </label>
             <label class="field">
+              <span>HPP per unit</span>
+              <span class="input-wrap">
+                <span>Rp</span>
+                <input
+                  id="unitCost"
+                  name="unitCost"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value="0"
+                  required
+                />
+              </span>
+            </label>
+            <label class="field">
+              <span>Biaya potong per transaksi</span>
+              <span class="input-wrap">
+                <span>Rp</span>
+                <input
+                  id="cuttingCost"
+                  name="cuttingCost"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value="0"
+                  required
+                />
+              </span>
+            </label>
+            <label class="field">
               <span>Catatan <span class="optional-note">(opsional)</span></span>
               <span class="input-wrap">
                 <input
@@ -153,6 +183,10 @@
           <p class="field-hint">
             Produk dan kategori bisa diketik bebas. Produk yang disimpan akan
             muncul sebagai saran untuk pencatatan berikutnya.
+          </p>
+          <p class="field-hint">
+            HPP dihitung per unit. Biaya potong dihitung sekali per transaksi;
+            masukkan biaya umum seperti sewa atau listrik sebagai pengeluaran.
           </p>
         </form>
       </section>
@@ -234,6 +268,10 @@
             </button>
           </div>
           <p id="expenseStatus" class="status-message" role="status" aria-live="polite"></p>
+          <p class="field-hint">
+            Catat biaya umum di sini. HPP dan biaya potong penjualan dicatat pada
+            formulir penjualan agar tidak terhitung dua kali.
+          </p>
         </form>
       </section>
 
@@ -246,12 +284,12 @@
         <article class="metric-card">
           <span class="metric-label">Total pengeluaran</span>
           <strong id="totalExpenses" class="metric-value">Rp 0</strong>
-          <span class="metric-detail">sesuai rentang tanggal</span>
+          <span id="expenseBreakdown" class="metric-detail">HPP, potong, dan biaya umum</span>
         </article>
         <article class="metric-card">
-          <span class="metric-label">Saldo bersih</span>
+          <span class="metric-label">Laba bersih</span>
           <strong id="netBalance" class="metric-value">Rp 0</strong>
-          <span class="metric-detail">pendapatan dikurangi pengeluaran</span>
+          <span class="metric-detail">pendapatan dikurangi seluruh biaya</span>
         </article>
         <article class="metric-card">
           <span class="metric-label">Transaksi</span>
@@ -300,9 +338,10 @@
               <h2 id="line-title">Penjualan per tanggal &amp; kategori</h2>
             </div>
           </div>
-          <!-- moneydata.js draws total sales and each category as separate lines. -->
+          <!-- moneydata.js draws total sales and up to five categories plus Lainnya. -->
           <div id="lineChart" class="chart-container"></div>
           <div id="lineLegend" class="line-chart-legend" aria-label="Keterangan grafik garis"></div>
+          <p class="field-hint">Menampilkan lima kategori teratas; kategori lainnya digabung.</p>
         </article>
         <article class="panel sales-chart-panel" aria-labelledby="pie-title">
           <div class="section-heading">
@@ -311,7 +350,7 @@
               <h2 id="pie-title">Pendapatan per kategori</h2>
             </div>
           </div>
-          <!-- Categories and their shares are rendered here from saved sales. -->
+          <!-- The five largest categories are shown separately; remaining categories are grouped. -->
           <div class="pie-chart-layout">
             <div id="pieChart" class="pie-chart"></div>
             <div id="pieLegend" class="chart-legend"></div>
@@ -337,6 +376,9 @@
                 <th scope="col">Jumlah</th>
                 <th scope="col">Harga/unit</th>
                 <th scope="col">Pendapatan</th>
+                <th scope="col">HPP</th>
+                <th scope="col">Biaya potong</th>
+                <th scope="col">Laba transaksi</th>
                 <th scope="col">Catatan</th>
                 <th scope="col">Aksi</th>
               </tr>
@@ -378,6 +420,7 @@
         </p>
       </section>
     </main>
+    <script src="moneydata-core.js"></script>
     <script src="moneydata.js"></script>
   </body>
 </html>

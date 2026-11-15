@@ -818,11 +818,15 @@ h2 {
 }
 
 .sales-kpi-grid .metric-card {
-  min-height: 132px;
+  min-height: 150px;
 }
 
 .sales-kpi-grid .metric-value {
   overflow-wrap: anywhere;
+}
+
+#salesTable {
+  min-width: 1160px;
 }
 
 .filter-panel {

@@ -1,5 +1,3 @@
-// Change this key or the record fields below if the saved sales format changes.
-const STORAGE_KEY = "kalkulatorProduk.salesData.v1";
 const currencyFormat = new Intl.NumberFormat("id-ID", {
   style: "currency",
   currency: "IDR",
@@ -29,6 +27,8 @@ const productNameInput = document.getElementById("productName");
 const categoryInput = document.getElementById("productCategory");
 const quantityInput = document.getElementById("quantity");
 const unitPriceInput = document.getElementById("unitPrice");
+const unitCostInput = document.getElementById("unitCost");
+const cuttingCostInput = document.getElementById("cuttingCost");
 const noteInput = document.getElementById("saleNote");
 const salesStatus = document.getElementById("salesStatus");
 const salesTableBody = document.getElementById("data-table-body");
@@ -68,74 +68,6 @@ function setExpenseStatus(message, isError = false) {
   expenseStatus.classList.toggle("is-error", isError);
 }
 
-function isValidSale(record) {
-  return (
-    record !== null &&
-    typeof record === "object" &&
-    typeof record.id === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
-    Number.isFinite(Date.parse(`${record.date}T00:00:00`)) &&
-    typeof record.product === "string" &&
-    typeof record.category === "string" &&
-    typeof record.note === "string" &&
-    Number.isFinite(record.quantity) &&
-    record.quantity > 0 &&
-    Number.isFinite(record.unitPrice) &&
-    record.unitPrice >= 0 &&
-    typeof record.createdAt === "string"
-  );
-}
-
-function isValidProduct(product) {
-  return (
-    product !== null &&
-    typeof product === "object" &&
-    typeof product.name === "string" &&
-    typeof product.category === "string" &&
-    Number.isFinite(product.unitPrice) &&
-    product.unitPrice >= 0
-  );
-}
-
-function isValidExpense(record) {
-  return (
-    record !== null &&
-    typeof record === "object" &&
-    typeof record.id === "string" &&
-    /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
-    Number.isFinite(Date.parse(`${record.date}T00:00:00`)) &&
-    typeof record.description === "string" &&
-    typeof record.category === "string" &&
-    typeof record.note === "string" &&
-    Number.isFinite(record.amount) &&
-    record.amount >= 0 &&
-    typeof record.createdAt === "string"
-  );
-}
-
-// Keep all financial records together so each save updates the whole store.
-function readSavedData() {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === null) {
-    return { sales: [], products: [], expenses: [] };
-  }
-
-  const parsed = JSON.parse(stored);
-  if (
-    parsed === null ||
-    typeof parsed !== "object" ||
-    !Array.isArray(parsed.sales) ||
-    !Array.isArray(parsed.products) ||
-    !parsed.sales.every(isValidSale) ||
-    !parsed.products.every(isValidProduct) ||
-    (parsed.expenses !== undefined &&
-      (!Array.isArray(parsed.expenses) || !parsed.expenses.every(isValidExpense)))
-  ) {
-    throw new Error("Format data keuangan tersimpan tidak valid.");
-  }
-  return { ...parsed, expenses: parsed.expenses || [] };
-}
-
 function saveData(successMessage, statusTarget = salesStatus) {
   if (!storageAvailable) {
     const message =
@@ -147,10 +79,7 @@ function saveData(successMessage, statusTarget = salesStatus) {
   }
 
   try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ sales, products: productCatalog, expenses }),
-    );
+    FinanceCore.writeSavedData({ sales, products: productCatalog, expenses });
     statusTarget === expenseStatus
       ? setExpenseStatus(successMessage)
       : setStatus(successMessage);
@@ -230,11 +159,13 @@ function rememberProduct(sale) {
     existing.name = sale.product;
     existing.category = sale.category;
     existing.unitPrice = sale.unitPrice;
+    existing.unitCost = sale.unitCost;
   } else {
     productCatalog.push({
       name: sale.product,
       category: sale.category,
       unitPrice: sale.unitPrice,
+      unitCost: sale.unitCost,
     });
   }
   renderSuggestions();
@@ -249,30 +180,23 @@ function fillRememberedProduct() {
     categoryInput.value =
       remembered.category === "Tanpa kategori" ? "" : remembered.category;
     unitPriceInput.value = String(remembered.unitPrice);
+    unitCostInput.value = String(remembered.unitCost);
   }
 }
 
 function getFilteredSales() {
-  const start = filterStartInput.value;
-  const end = filterEndInput.value;
-  if (start && end && start > end) {
-    throw new Error("Tanggal awal harus sama atau sebelum tanggal akhir.");
-  }
-  return getFilteredRecords(sales, start, end);
+  return FinanceCore.filterByDateRange(
+    sales,
+    filterStartInput.value,
+    filterEndInput.value,
+  );
 }
 
 function getFilteredExpenses() {
-  const start = filterStartInput.value;
-  const end = filterEndInput.value;
-  if (start && end && start > end) {
-    throw new Error("Tanggal awal harus sama atau sebelum tanggal akhir.");
-  }
-  return getFilteredRecords(expenses, start, end);
-}
-
-function getFilteredRecords(records, start, end) {
-  return records.filter(
-    (record) => (!start || record.date >= start) && (!end || record.date <= end),
+  return FinanceCore.filterByDateRange(
+    expenses,
+    filterStartInput.value,
+    filterEndInput.value,
   );
 }
 
@@ -292,13 +216,17 @@ function renderSalesTable(records) {
     .forEach((sale) => {
       const row = document.createElement("tr");
       // Keep this cell order aligned with the table headings in moneydata.html.
+      const financials = FinanceCore.getSaleFinancials(sale);
       const cells = [
         formatDate(sale.date),
         sale.product,
         sale.category,
         quantityFormat.format(sale.quantity),
         formatCurrency(sale.unitPrice),
-        formatCurrency(sale.quantity * sale.unitPrice),
+        formatCurrency(financials.revenue),
+        formatCurrency(financials.costOfGoods),
+        formatCurrency(financials.cuttingCost),
+        formatCurrency(financials.profit),
         sale.note || "—",
       ];
       cells.forEach((value) => {
@@ -369,27 +297,8 @@ function renderLineChart(records) {
   const legend = document.getElementById("lineLegend");
   container.replaceChildren();
   legend.replaceChildren();
-  // Keep daily totals and per-category amounts so every line uses the same dates.
-  const dailyRevenue = new Map();
-  const dailyCategoryRevenue = new Map();
-  const categoryTotals = new Map();
-  records.forEach((sale) => {
-    const category = sale.category.trim() || "Tanpa kategori";
-    const revenue = sale.quantity * sale.unitPrice;
-    dailyRevenue.set(
-      sale.date,
-      (dailyRevenue.get(sale.date) || 0) + revenue,
-    );
-    if (!dailyCategoryRevenue.has(sale.date)) {
-      dailyCategoryRevenue.set(sale.date, new Map());
-    }
-    const dailyCategories = dailyCategoryRevenue.get(sale.date);
-    dailyCategories.set(category, (dailyCategories.get(category) || 0) + revenue);
-    categoryTotals.set(category, (categoryTotals.get(category) || 0) + revenue);
-  });
-  const dates = [...dailyRevenue.keys()].sort((left, right) =>
-    left.localeCompare(right),
-  );
+  const chartData = FinanceCore.getSalesChartData(records);
+  const { dailyRevenue, dailyCategoryRevenue, categories, dates } = chartData;
 
   if (dates.length === 0) {
     container.appendChild(
@@ -398,10 +307,7 @@ function renderLineChart(records) {
     return;
   }
 
-  const categories = [...categoryTotals.keys()].sort(
-    (left, right) => categoryTotals.get(right) - categoryTotals.get(left),
-  );
-  const categorySeries = categories.map((name, index) => ({
+  const categorySeries = categories.map(({ name }, index) => ({
     name,
     color: CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length],
     values: dates.map(
@@ -537,18 +443,7 @@ function renderPieChart(records) {
   const legend = document.getElementById("pieLegend");
   chart.replaceChildren();
   legend.replaceChildren();
-  // Change this grouping key if the pie chart should compare products instead.
-  const categoryRevenue = new Map();
-  records.forEach((sale) => {
-    const category = sale.category.trim() || "Tanpa kategori";
-    categoryRevenue.set(
-      category,
-      (categoryRevenue.get(category) || 0) + sale.quantity * sale.unitPrice,
-    );
-  });
-  const categories = [...categoryRevenue.entries()]
-    .map(([name, revenue]) => ({ name, revenue }))
-    .sort((left, right) => right.revenue - left.revenue);
+  const { categories } = FinanceCore.getSalesChartData(records);
   const totalRevenue = categories.reduce((total, item) => total + item.revenue, 0);
 
   if (categories.length === 0 || totalRevenue === 0) {
@@ -645,22 +540,18 @@ function renderDashboard() {
     return;
   }
 
-  const totalRevenue = filteredSales.reduce(
-    (total, sale) => total + sale.quantity * sale.unitPrice,
-    0,
-  );
-  const totalExpenses = filteredExpenses.reduce(
-    (total, expense) => total + expense.amount,
-    0,
-  );
-  const unitsSold = filteredSales.reduce((total, sale) => total + sale.quantity, 0);
-  document.getElementById("totalRevenue").textContent = formatCurrency(totalRevenue);
-  document.getElementById("totalExpenses").textContent = formatCurrency(totalExpenses);
+  const summary = FinanceCore.summarize(filteredSales, filteredExpenses);
+  document.getElementById("totalRevenue").textContent = formatCurrency(summary.revenue);
+  document.getElementById("totalExpenses").textContent =
+    formatCurrency(summary.totalExpenses);
+  document.getElementById("expenseBreakdown").textContent =
+    `HPP ${formatCurrency(summary.costOfGoods)} · potong ${formatCurrency(summary.cuttingCosts)} · umum ${formatCurrency(summary.otherExpenses)}`;
   document.getElementById("netBalance").textContent =
-    formatCurrency(totalRevenue - totalExpenses);
+    formatCurrency(summary.netProfit);
   document.getElementById("transactionCount").textContent =
-    quantityFormat.format(filteredSales.length + filteredExpenses.length);
-  document.getElementById("unitsSold").textContent = quantityFormat.format(unitsSold);
+    quantityFormat.format(summary.transactionCount);
+  document.getElementById("unitsSold").textContent =
+    quantityFormat.format(summary.unitsSold);
   renderSalesTable(filteredSales);
   renderExpensesTable(filteredExpenses);
   renderLineChart(filteredSales);
@@ -681,6 +572,8 @@ function startEditingSale(sale) {
   categoryInput.value = sale.category === "Tanpa kategori" ? "" : sale.category;
   quantityInput.value = String(sale.quantity);
   unitPriceInput.value = String(sale.unitPrice);
+  unitCostInput.value = String(sale.unitCost);
+  cuttingCostInput.value = String(sale.cuttingCost);
   noteInput.value = sale.note;
   salesForm.dataset.editId = sale.id;
   document.getElementById("submitLabel").textContent = "Simpan perubahan";
@@ -722,6 +615,8 @@ salesForm.addEventListener("submit", (event) => {
   const category = categoryInput.value.trim() || "Tanpa kategori";
   const quantity = Number(quantityInput.value);
   const unitPrice = Number(unitPriceInput.value);
+  const unitCost = Number(unitCostInput.value);
+  const cuttingCost = Number(cuttingCostInput.value);
   if (
     !date ||
     !Number.isFinite(Date.parse(`${date}T00:00:00`)) ||
@@ -730,9 +625,15 @@ salesForm.addEventListener("submit", (event) => {
     quantity <= 0 ||
     unitPriceInput.value.trim() === "" ||
     !Number.isFinite(unitPrice) ||
-    unitPrice < 0
+    unitPrice < 0 ||
+    unitCostInput.value.trim() === "" ||
+    !Number.isFinite(unitCost) ||
+    unitCost < 0 ||
+    cuttingCostInput.value.trim() === "" ||
+    !Number.isFinite(cuttingCost) ||
+    cuttingCost < 0
   ) {
-    setStatus("Isi tanggal, produk, jumlah, dan harga dengan nilai yang valid.", true);
+    setStatus("Isi data penjualan, HPP, dan biaya potong dengan nilai yang valid.", true);
     return;
   }
 
@@ -745,6 +646,8 @@ salesForm.addEventListener("submit", (event) => {
     category,
     quantity,
     unitPrice,
+    unitCost,
+    cuttingCost,
     note: noteInput.value.trim(),
     createdAt: existing ? existing.createdAt : new Date().toISOString(),
   };
@@ -895,7 +798,7 @@ document.addEventListener("click", (event) => {
 });
 
 try {
-  const savedData = readSavedData();
+  const savedData = FinanceCore.readSavedData();
   sales = savedData.sales;
   productCatalog = savedData.products;
   expenses = savedData.expenses;
