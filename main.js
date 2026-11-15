@@ -1103,6 +1103,7 @@ function calculateWeight(values) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  resultsSection.hidden = true;
   setStatus("", false);
 
   let calculation;
