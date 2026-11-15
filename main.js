@@ -1,4 +1,3 @@
-const HISTORY_KEY = "kalkulatorProduk.history.v1";
 const numberFormat = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 2,
 });
@@ -173,86 +172,6 @@ function formatCurrency(value) {
 function setStatus(message, isError) {
   statusMessage.textContent = message;
   statusMessage.classList.toggle("is-error", Boolean(isError));
-}
-
-function readHistory() {
-  const saved = window.localStorage.getItem(HISTORY_KEY);
-  if (saved === null) {
-    return [];
-  }
-
-  const parsed = JSON.parse(saved);
-  if (!Array.isArray(parsed)) {
-    throw new Error("Data riwayat tidak memiliki format yang benar.");
-  }
-  return parsed;
-}
-
-function isValidRecord(record) {
-  if (
-    record === null ||
-    typeof record !== "object" ||
-    typeof record.id !== "string" ||
-    typeof record.createdAt !== "string" ||
-    !Number.isFinite(Date.parse(record.createdAt))
-  ) {
-    return false;
-  }
-  if (record.mode === "weight") {
-    return [
-      "materialWeight",
-      "pieceWeight",
-      "pieces",
-      "usedWeight",
-      "leftoverWeight",
-      "pricePerKg",
-      "sheetValue",
-      "usedValue",
-    ].every((key) => Number.isFinite(record[key]));
-  }
-  if (record.mode === "multi") {
-    return (
-      Array.isArray(record.items) &&
-      record.items.length > 0 &&
-      record.items.every(
-        (item) =>
-          Number.isFinite(item.length) &&
-          Number.isFinite(item.width) &&
-          Number.isSafeInteger(item.count) &&
-          item.count >= 0,
-      ) &&
-      [
-        "length",
-        "width",
-        "pricePerM2",
-        "pieces",
-        "sheetAreaCm2",
-        "usedAreaCm2",
-        "leftoverAreaCm2",
-        "sheetValue",
-        "usedValue",
-        "leftoverValue",
-        "pieceValue",
-      ].every((key) => Number.isFinite(record[key]))
-    );
-  }
-  return [
-    "length",
-    "width",
-    "pieceLength",
-    "pieceWidth",
-    "pricePerM2",
-    "countX",
-    "countY",
-    "pieces",
-    "sheetAreaCm2",
-    "usedAreaCm2",
-    "leftoverAreaCm2",
-    "sheetValue",
-    "usedValue",
-    "leftoverValue",
-    "pieceValue",
-  ].every((key) => Number.isFinite(record[key]));
 }
 
 function setSvgAttributes(element, attributes) {
@@ -1101,7 +1020,7 @@ function calculateWeight(values) {
   };
 }
 
-form.addEventListener("submit", (event) => {
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
   resultsSection.hidden = true;
   setStatus("", false);
@@ -1164,7 +1083,7 @@ form.addEventListener("submit", (event) => {
   };
   const nextHistory = [record, ...historyRecords];
   try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+    await AppStorage.writeHistory(nextHistory);
     historyRecords = nextHistory;
     renderHistory();
     document.getElementById("saveBadge").textContent = "Tersimpan otomatis";
@@ -1180,7 +1099,7 @@ form.addEventListener("submit", (event) => {
   }
 });
 
-historyList.addEventListener("click", (event) => {
+historyList.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-delete-id]");
   if (!button || !historyAvailable) {
     return;
@@ -1190,7 +1109,7 @@ historyList.addEventListener("click", (event) => {
     (record) => record.id !== button.dataset.deleteId,
   );
   try {
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(nextHistory));
+    await AppStorage.writeHistory(nextHistory);
     historyRecords = nextHistory;
     renderHistory();
     setStatus("Kalkulasi dihapus dari riwayat.", false);
@@ -1199,16 +1118,20 @@ historyList.addEventListener("click", (event) => {
   }
 });
 
-try {
-  const savedHistory = readHistory();
-  if (!savedHistory.every(isValidRecord)) {
-    throw new Error("Sebagian data riwayat tidak valid dan tidak ditampilkan.");
+async function loadHistory() {
+  try {
+    const migration = await AppStorage.initialize();
+    historyRecords = await AppStorage.readHistory();
+    renderHistory();
+    if (migration.warning) {
+      setStatus(migration.warning, true);
+    }
+  } catch (error) {
+    historyAvailable = false;
+    setStatus(`Riwayat tidak dapat dibaca: ${error.message}`, true);
   }
-  historyRecords = savedHistory;
-} catch (error) {
-  historyAvailable = false;
-  setStatus(`Riwayat tidak dapat dibaca: ${error.message}`, true);
 }
 
 setMode(getMode());
 renderHistory();
+loadHistory();

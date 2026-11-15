@@ -8,12 +8,18 @@
       content="Pilih fitur untuk mulai menggunakan aplikasi kalkulator produk."
     />
     <meta name="theme-color" content="#10131d" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <title>Beranda | Kalkulator Produk</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <main class="app-shell home-shell">
       <header class="page-header home-header">
+        <div class="page-menu-row">
+          <button id="installAppButton" class="install-button" type="button" hidden>
+            Pasang aplikasi
+          </button>
+        </div>
         <p class="eyebrow">KALKULATOR PRODUK</p>
         <h1>Selamat datang.</h1>
         <p class="intro">
@@ -54,6 +60,23 @@
           </a>
         </div>
       </section>
+
+      <section class="panel install-guide" aria-labelledby="install-title">
+        <p class="eyebrow">ANDROID &amp; DATA</p>
+        <h2 id="install-title">Pasang dan lindungi data</h2>
+        <p>
+          Buka situs ini di Chrome pada Android, lalu pilih menu ⋮ dan
+          <strong>Instal aplikasi</strong> atau <strong>Tambahkan ke layar utama</strong>.
+          Situs harus dibuka lewat HTTPS; setelah halaman selesai dimuat, aplikasi
+          dapat dibuka offline.
+        </p>
+        <p>
+          Catatan dan kalkulasi tersimpan di perangkat ini. Gunakan cadangan JSON
+          di halaman Data Keuangan secara berkala untuk memindahkannya atau
+          memulihkannya.
+        </p>
+      </section>
     </main>
+    <script src="pwa.js"></script>
   </body>
 </html>

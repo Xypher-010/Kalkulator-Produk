@@ -7,6 +7,8 @@
       name="description"
       content="Hitung potongan ukuran tunggal atau campuran berdasarkan ukuran maupun berat bahan."
     />
+    <meta name="theme-color" content="#10131d" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <title>Kalkulator Potong Bahan</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -14,6 +16,9 @@
     <main class="app-shell">
       <header class="page-header">
         <div class="page-menu-row">
+          <button id="installAppButton" class="install-button" type="button" hidden>
+            Pasang aplikasi
+          </button>
           <div class="page-menu">
             <button
               id="menuToggle"
@@ -390,8 +395,8 @@
           <span id="historyCount" class="unit-note">0 kalkulasi</span>
         </div>
         <p class="history-note">
-          Riwayat disimpan di browser ini dan tetap tersedia saat halaman dibuka
-          kembali.
+          Riwayat disimpan di perangkat ini dan tetap tersedia saat halaman
+          dibuka kembali.
         </p>
         <div id="historyList" class="history-list"></div>
         <p id="emptyHistory" class="empty-state">
@@ -399,6 +404,8 @@
         </p>
       </section>
     </main>
+    <script src="app-storage.js"></script>
     <script src="main.js"></script>
+    <script src="pwa.js"></script>
   </body>
 </html>

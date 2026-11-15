@@ -8,6 +8,7 @@
       content="Catat penjualan dan biaya, lalu pantau pendapatan serta laba usaha."
     />
     <meta name="theme-color" content="#10131d" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <title>Data Keuangan | Kalkulator Produk</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -15,6 +16,9 @@
     <main class="app-shell finance-shell">
       <header class="page-header">
         <div class="page-menu-row">
+          <button id="installAppButton" class="install-button" type="button" hidden>
+            Pasang aplikasi
+          </button>
           <div class="page-menu">
             <button
               id="menuToggle"
@@ -47,6 +51,51 @@
           produk yang paling banyak menghasilkan.
         </p>
       </header>
+
+      <section class="panel backup-panel" aria-labelledby="backup-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CADANGAN &amp; PEMULIHAN</p>
+            <h2 id="backup-title">Lindungi data Anda</h2>
+          </div>
+          <span class="unit-note">Tersimpan di perangkat ini</span>
+        </div>
+        <p class="field-hint">
+          JSON berisi seluruh penjualan, pengeluaran, produk tersimpan, dan
+          riwayat kalkulasi. CSV untuk spreadsheet; gunakan JSON untuk memulihkan data.
+        </p>
+        <div class="backup-actions">
+          <button id="downloadBackupButton" class="secondary-button" type="button">
+            Unduh cadangan JSON
+          </button>
+          <button id="downloadCsvButton" class="secondary-button" type="button">
+            Ekspor CSV
+          </button>
+        </div>
+        <label class="field backup-file-field">
+          <span>Pilih file cadangan JSON</span>
+          <input id="backupFile" type="file" accept=".json,application/json" />
+        </label>
+        <div id="backupPreview" class="backup-preview" hidden>
+          <p id="backupPreviewSummary"></p>
+          <label class="field">
+            <span>Cara pemulihan</span>
+            <select id="restoreMode">
+              <option value="merge">Gabungkan dengan data yang ada</option>
+              <option value="replace">Ganti seluruh data yang ada</option>
+            </select>
+          </label>
+          <button id="restoreBackupButton" class="primary-button" type="button" disabled>
+            Pulihkan cadangan
+          </button>
+        </div>
+        <p id="backupStatus" class="status-message" role="status" aria-live="polite"></p>
+        <p class="field-hint">
+          File hanya diproses di browser ini dan tidak diunggah. Pastikan file
+          cadangan disimpan di tempat yang aman. Data lokal tidak dienkripsi;
+          lindungi perangkat Anda dengan kunci layar.
+        </p>
+      </section>
 
       <section class="panel sales-input-panel" aria-labelledby="sale-form-title">
         <div class="section-heading">
@@ -420,7 +469,10 @@
         </p>
       </section>
     </main>
+    <script src="app-storage.js"></script>
     <script src="moneydata-core.js"></script>
     <script src="moneydata.js"></script>
+    <script src="backup.js"></script>
+    <script src="pwa.js"></script>
   </body>
 </html>

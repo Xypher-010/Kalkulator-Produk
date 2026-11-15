@@ -68,7 +68,7 @@ function setExpenseStatus(message, isError = false) {
   expenseStatus.classList.toggle("is-error", isError);
 }
 
-function saveData(successMessage, statusTarget = salesStatus) {
+async function saveData(successMessage, statusTarget = salesStatus) {
   if (!storageAvailable) {
     const message =
       "Perubahan hanya tersedia selama halaman ini terbuka karena penyimpanan browser tidak dapat digunakan.";
@@ -79,7 +79,11 @@ function saveData(successMessage, statusTarget = salesStatus) {
   }
 
   try {
-    FinanceCore.writeSavedData({ sales, products: productCatalog, expenses });
+    await AppStorage.writeFinance({
+      sales,
+      products: productCatalog,
+      expenses,
+    });
     statusTarget === expenseStatus
       ? setExpenseStatus(successMessage)
       : setStatus(successMessage);
@@ -606,7 +610,7 @@ function startEditingExpense(expense) {
 }
 
 // Product and category inputs are intentionally free text; saved values only act as suggestions.
-salesForm.addEventListener("submit", (event) => {
+salesForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   setStatus("");
 
@@ -659,10 +663,12 @@ salesForm.addEventListener("submit", (event) => {
   rememberProduct(sale);
   resetSaleForm();
   renderDashboard();
-  saveData(existing ? "Perubahan penjualan berhasil disimpan." : "Penjualan berhasil disimpan.");
+  await saveData(
+    existing ? "Perubahan penjualan berhasil disimpan." : "Penjualan berhasil disimpan.",
+  );
 });
 
-expenseForm.addEventListener("submit", (event) => {
+expenseForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   setExpenseStatus("");
 
@@ -699,7 +705,7 @@ expenseForm.addEventListener("submit", (event) => {
   }
   resetExpenseForm();
   renderDashboard();
-  saveData(
+  await saveData(
     existing ? "Perubahan pengeluaran berhasil disimpan." : "Pengeluaran berhasil disimpan.",
     expenseStatus,
   );
@@ -728,7 +734,7 @@ document.getElementById("cancelExpenseEditButton").addEventListener("click", () 
   setExpenseStatus("Edit dibatalkan.");
 });
 
-salesTableBody.addEventListener("click", (event) => {
+salesTableBody.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button) {
     return;
@@ -744,11 +750,11 @@ salesTableBody.addEventListener("click", (event) => {
   if (button.dataset.action === "delete") {
     sales = sales.filter((item) => item.id !== sale.id);
     renderDashboard();
-    saveData("Penjualan dihapus. Produk tetap tersimpan sebagai saran.");
+    await saveData("Penjualan dihapus. Produk tetap tersimpan sebagai saran.");
   }
 });
 
-expensesTableBody.addEventListener("click", (event) => {
+expensesTableBody.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-action]");
   if (!button) {
     return;
@@ -764,7 +770,7 @@ expensesTableBody.addEventListener("click", (event) => {
   if (button.dataset.action === "delete-expense") {
     expenses = expenses.filter((item) => item.id !== expense.id);
     renderDashboard();
-    saveData("Pengeluaran dihapus.", expenseStatus);
+    await saveData("Pengeluaran dihapus.", expenseStatus);
   }
 });
 
@@ -797,17 +803,38 @@ document.addEventListener("click", (event) => {
   }
 });
 
-try {
-  const savedData = FinanceCore.readSavedData();
-  sales = savedData.sales;
-  productCatalog = savedData.products;
-  expenses = savedData.expenses;
-} catch (error) {
-  storageAvailable = false;
-  setStatus(`Data tersimpan tidak dapat dibaca: ${error.message}`, true);
+async function loadSavedData() {
+  const formControls = [
+    ...salesForm.querySelectorAll("input, button"),
+    ...expenseForm.querySelectorAll("input, button"),
+  ];
+  formControls.forEach((control) => {
+    control.disabled = true;
+  });
+  setStatus("Memuat data tersimpan...");
+
+  try {
+    const migration = await AppStorage.initialize();
+    const savedData = await AppStorage.readFinance();
+    sales = savedData.sales;
+    productCatalog = savedData.products;
+    expenses = savedData.expenses;
+    storageAvailable = true;
+    formControls.forEach((control) => {
+      control.disabled = false;
+    });
+    renderSuggestions();
+    renderDashboard();
+    setStatus(migration.warning);
+  } catch (error) {
+    storageAvailable = false;
+    setStatus(`Data tersimpan tidak dapat dibaca: ${error.message}`, true);
+    setExpenseStatus("Penyimpanan tidak tersedia.", true);
+  }
 }
 
 saleDateInput.value = createLocalDateValue();
 expenseDateInput.value = createLocalDateValue();
 renderSuggestions();
 renderDashboard();
+loadSavedData();

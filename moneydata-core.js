@@ -1,98 +1,6 @@
 (function (global) {
   "use strict";
 
-  const STORAGE_KEY = "kalkulatorProduk.salesData.v1";
-
-  function isValidSale(record) {
-    return (
-      record !== null &&
-      typeof record === "object" &&
-      typeof record.id === "string" &&
-      /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
-      Number.isFinite(Date.parse(`${record.date}T00:00:00`)) &&
-      typeof record.product === "string" &&
-      typeof record.category === "string" &&
-      typeof record.note === "string" &&
-      Number.isFinite(record.quantity) &&
-      record.quantity > 0 &&
-      Number.isFinite(record.unitPrice) &&
-      record.unitPrice >= 0 &&
-      (record.unitCost === undefined ||
-        (Number.isFinite(record.unitCost) && record.unitCost >= 0)) &&
-      (record.cuttingCost === undefined ||
-        (Number.isFinite(record.cuttingCost) && record.cuttingCost >= 0)) &&
-      typeof record.createdAt === "string"
-    );
-  }
-
-  function isValidProduct(product) {
-    return (
-      product !== null &&
-      typeof product === "object" &&
-      typeof product.name === "string" &&
-      typeof product.category === "string" &&
-      Number.isFinite(product.unitPrice) &&
-      product.unitPrice >= 0 &&
-      (product.unitCost === undefined ||
-        (Number.isFinite(product.unitCost) && product.unitCost >= 0))
-    );
-  }
-
-  function isValidExpense(record) {
-    return (
-      record !== null &&
-      typeof record === "object" &&
-      typeof record.id === "string" &&
-      /^\d{4}-\d{2}-\d{2}$/.test(record.date) &&
-      Number.isFinite(Date.parse(`${record.date}T00:00:00`)) &&
-      typeof record.description === "string" &&
-      typeof record.category === "string" &&
-      typeof record.note === "string" &&
-      Number.isFinite(record.amount) &&
-      record.amount >= 0 &&
-      typeof record.createdAt === "string"
-    );
-  }
-
-  function readSavedData() {
-    const stored = global.localStorage.getItem(STORAGE_KEY);
-    if (stored === null) {
-      return { sales: [], products: [], expenses: [] };
-    }
-
-    const parsed = JSON.parse(stored);
-    if (
-      parsed === null ||
-      typeof parsed !== "object" ||
-      !Array.isArray(parsed.sales) ||
-      !Array.isArray(parsed.products) ||
-      !parsed.sales.every(isValidSale) ||
-      !parsed.products.every(isValidProduct) ||
-      (parsed.expenses !== undefined &&
-        (!Array.isArray(parsed.expenses) || !parsed.expenses.every(isValidExpense)))
-    ) {
-      throw new Error("Format data keuangan tersimpan tidak valid.");
-    }
-
-    return {
-      ...parsed,
-      products: parsed.products.map((product) => ({
-        ...product,
-        unitCost: product.unitCost === undefined ? 0 : product.unitCost,
-      })),
-      sales: parsed.sales.map((sale) => ({
-        ...sale,
-        unitCost: sale.unitCost === undefined ? 0 : sale.unitCost,
-        cuttingCost: sale.cuttingCost === undefined ? 0 : sale.cuttingCost,
-      })),
-      expenses: parsed.expenses || [],
-    };
-  }
-
-  function writeSavedData(data) {
-    global.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
-
   function filterByDateRange(records, start, end) {
     if (start && end && start > end) {
       throw new Error("Tanggal awal harus sama atau sebelum tanggal akhir.");
@@ -207,8 +115,6 @@
     filterByDateRange,
     getSaleFinancials,
     getSalesChartData,
-    readSavedData,
     summarize,
-    writeSavedData,
   });
 })(window);
