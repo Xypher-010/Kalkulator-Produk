@@ -1,1 +1,1 @@
-here is the link to the app kalkulator-produk.netlify.app
+here is the link to the app https://kalkulator-produk.netlify.app
